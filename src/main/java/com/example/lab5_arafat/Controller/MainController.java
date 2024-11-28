@@ -9,6 +9,9 @@ import com.example.lab5_arafat.Service.Implementation.CategoryServiceImpl;
 import com.example.lab5_arafat.Service.Implementation.TaskServiceImpl;
 import com.example.lab5_arafat.Service.Implementation.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -155,4 +158,66 @@ public class MainController {
         taskService.deleteTaskById(id);
         return "redirect:/home";
     }
+
+    @GetMapping("/task/edit/{id}")
+    public String editTask(@PathVariable Long id, Model model) {
+        Task task = taskService.getTaskById(id);
+        if (task == null) {
+            return "redirect:/home";
+        }
+        model.addAttribute("task", task);
+        model.addAttribute("categories", categoryService.getAllCategories());
+        model.addAttribute("statuses", Task.Status.values());
+        model.addAttribute("priorities", Task.Priority.values());
+        return "editTask";
+    }
+
+    @PostMapping("/task/update/{id}")
+    public String updateTask(@PathVariable Long id,
+                             @RequestParam("title") String title,
+                             @RequestParam("description") String description,
+                             @RequestParam("dueDate") String dueDate,
+                             @RequestParam("status") String status,
+                             @RequestParam("priority") String priority,
+                             @RequestParam("categoryId") Long categoryId) {
+        Task task = taskService.getTaskById(id);
+        if (task != null) {
+            task.setTitle(title);
+            task.setDescription(description);
+            task.setDueDate(dueDate.isEmpty() ? null : LocalDate.parse(dueDate));
+            task.setStatus(Task.Status.valueOf(status.toUpperCase()));
+            task.setPriority(Task.Priority.valueOf(priority.toUpperCase()));
+            task.setCategory(categoryService.getCategoryById(categoryId));
+
+            taskService.updateTask(task);
+        }
+        return "redirect:/home";
+    }
+
+//    @GetMapping("/home")
+//    public String home(@AuthenticationPrincipal UserDetails currentUser,
+//                       @RequestParam(defaultValue = "0") int page, // Параметр для страницы
+//                       Model model) {
+//        if (currentUser == null) {
+//            return "redirect:/login";
+//        }
+//
+//        String username = currentUser.getUsername();
+//        User user = userService.findByUsername(username);
+//
+//        if (user == null) {
+//            return "redirect:/login";
+//        }
+//
+//        model.addAttribute("currentUser", user);
+//
+//        Pageable pageable = PageRequest.of(page, 5);
+//
+//        Page<Task> taskPage = taskService.findTasksByUser(user.getId(), pageable);
+//        model.addAttribute("tasks", taskPage.getContent());
+//        model.addAttribute("currentPage", page);
+//        model.addAttribute("totalPages", taskPage.getTotalPages());
+//
+//        return "homePage";
+//    }
 }

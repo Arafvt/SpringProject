@@ -132,12 +132,14 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
             position: relative;
             z-index: 1;
+            table-layout: fixed;
         }
 
         th, td {
             padding: 14px;
             border: 1px solid #ddd;
             text-align: left;
+            word-wrap: break-word;
         }
 
         th {
@@ -158,19 +160,62 @@
             text-decoration: underline;
         }
 
-        .delete-button {
+        .delete-button, .edit-button {
             padding: 8px 12px;
-            background-color: #e74c3c;
             color: white;
             border-radius: 6px;
             text-decoration: none;
             font-size: 14px;
             transition: background-color 0.3s ease, transform 0.3s ease;
+            display: inline-block;
+        }
+
+        .delete-button {
+            background-color: #e74c3c;
         }
 
         .delete-button:hover {
             background-color: #c0392b;
             transform: scale(1.01);
+        }
+
+        .edit-button {
+            background-color: #12a4f3;
+        }
+
+        .edit-button:hover {
+            background-color: #127bf3;
+            transform: scale(1.01);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 20px;
+        }
+
+        .pagination a {
+            text-decoration: none;
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            margin: 0 5px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+
+        .pagination a:hover {
+            background-color: #2980b9;
+        }
+
+        .pagination .disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            margin: 0 10px;
+            color: white;
         }
 
         footer {
@@ -193,38 +238,44 @@
     </style>
 </head>
 <body>
-<div class="bg-shapes"></div>
-<h1><a href="/profile" class="profile-button">My Profile</a></h1>
-<div class="header-container">
-    <h2>My Tasks</h2>
-    <form th:action="@{/search}" method="get">
-        <input type="text" name="query" placeholder="Enter the name of task">
-        <button type="submit">Find</button>
-    </form>
-    <a href="/task/new" class="add-task-btn">New Task</a>
-</div>
-<table>
-    <thead>
-    <tr>
-        <th>Title</th>
-        <th>Category</th>
-        <th>Action</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="task : ${tasks}">
-        <td>
-            <a th:href="@{/task/{id}(id=${task.id})}" class="task-title" th:text="${task.title}"></a>
-        </td>
-        <td th:text="${task.category.name}"></td>
-        <td>
-            <a th:href="@{/task/delete/{id}(id=${task.id})}" class="delete-button">Delete</a>
-        </td>
-    </tr>
-    </tbody>
-</table>
-<footer>
-    <p>&copy; 2024 By Arafat. Built with ❤️</p>
-</footer>
+    <div class="bg-shapes"></div>
+    <h1><a href="/profile" class="profile-button">My Profile</a></h1>
+    <div class="header-container">
+        <h2>My Tasks</h2>
+        <form th:action="@{/search}" method="get">
+            <input type="text" name="query" placeholder="Enter the name of task">
+            <button type="submit">Find</button>
+        </form>
+        <a href="/task/new" class="add-task-btn">New Task</a>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="task : ${tasks}">
+            <td>
+                <a th:href="@{/task/{id}(id=${task.id})}" class="task-title" th:text="${task.title}"></a>
+            </td>
+            <td th:text="${task.category.name}"></td>
+            <td>
+                <a th:href="@{/task/edit/{id}(id=${task.id})}" class="edit-button">Edit</a>
+                <a th:href="@{/task/delete/{id}(id=${task.id})}" class="delete-button">Delete</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+<!--    <div class="pagination">-->
+<!--        <a th:href="@{/home(page=${currentPage - 1})}" th:class="${currentPage == 0 ? 'disabled' : ''}">Previous</a>-->
+<!--        <span>Page <span th:text="${currentPage + 1}"></span> of <span th:text="${totalPages}"></span></span>-->
+<!--        <a th:href="@{/home(page=${currentPage + 1})}" th:class="${currentPage == totalPages - 1 ? 'disabled' : ''}">Next</a>-->
+<!--    </div>-->
+    <footer>
+        <p>&copy; 2024 By Arafat. Built with ❤️</p>
+    </footer>
 </body>
 </html>

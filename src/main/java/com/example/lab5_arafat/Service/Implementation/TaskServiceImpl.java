@@ -3,6 +3,8 @@ package com.example.lab5_arafat.Service.Implementation;
 import com.example.lab5_arafat.Entity.Task;
 import com.example.lab5_arafat.Repository.TaskRepo;
 import com.example.lab5_arafat.Service.TaskService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -42,16 +44,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task updateTask(Long taskId, Task updatedTask) {
-        Optional<Task> existingTaskOptional = taskRepo.findById(taskId);
-        if (existingTaskOptional.isPresent()) {
-            Task existingTask = existingTaskOptional.get();
-            existingTask.setTitle(updatedTask.getTitle());
-            existingTask.setDescription(updatedTask.getDescription());
-            existingTask.setCategory(updatedTask.getCategory());
-            return taskRepo.save(existingTask);
-        }
-        return null;
+    public void updateTask(Task task) {
+        taskRepo.save(task);
     }
 
     @Override
@@ -62,6 +56,10 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public List<Task> findAllTasks() {
         return taskRepo.findAll();
+    }
+
+    public Page<Task> findTasksByUser(Long userId, Pageable pageable) {
+        return taskRepo.findByUserId(userId, pageable);
     }
 }
 
