@@ -11,8 +11,8 @@ import java.util.List;
 public interface TaskRepo extends JpaRepository<Task, Long> {
     List<Task> findByUserId(Long userId);
     List<Task> findByCategoryId(Long categoryId);
-    List<Task> findByTitleContainingIgnoreCase(String title);
     Page<Task> findByUserId(Long userId, Pageable pageable);
+    Page<Task> findByTitleContainingIgnoreCaseAndUserId(String title, Long userId, Pageable pageable);
 }
 
 

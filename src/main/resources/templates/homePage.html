@@ -12,15 +12,6 @@
             overflow-x: hidden;
         }
 
-        h1 {
-            margin-top: 30px;
-            margin-left: 200px;
-            font-size: 40px;
-            color: #fff;
-            position: relative;
-            z-index: 1;
-        }
-
         h2 {
             display: inline-block;
             margin: 0;
@@ -37,7 +28,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin: 20px auto;
+            margin: 50px auto;
             width: 80%;
             position: relative;
             z-index: 1;
@@ -155,11 +146,35 @@
             transform: scale(1.01);
         }
 
+        .pagination-profile {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-left: 200px;
+            width: calc(80% - 200px);
+        }
+
         .pagination {
+            margin: 0;
             display: flex;
             justify-content: flex-start;
             margin-top: 20px;
             margin-left: 200px;
+        }
+
+        .profile-button {
+            padding: 10px 20px;
+            font-size: 14px;
+            background-color: #2ecc71;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        .profile-button:hover {
+            background-color: #27ae60;
+            transform: scale(1.01);
         }
 
         .pagination a {
@@ -184,7 +199,7 @@
 
         footer {
             text-align: center;
-            margin-top: 154px;
+            margin-top: 100px;
             font-size: 14px;
             color: #fff;
             position: relative;
@@ -202,7 +217,6 @@
     </style>
 </head>
 <body>
-    <h1><a href="/profile" class="profile-button">My Profile</a></h1>
     <div class="header-container">
         <h2>My Tasks</h2>
         <form th:action="@{/search}" method="get">
@@ -232,11 +246,17 @@
         </tr>
         </tbody>
     </table>
-        <div class="pagination">
-            <a th:href="@{/home(page=${currentPage - 1})}" th:classappend="${currentPage == 0 ? 'disabled' : ''}"><</a>
-            <span><span th:text="${currentPage + 1}"></span> of <span th:text="${totalPages}"></span></span>
-            <a th:href="@{/home(page=${currentPage + 1})}" th:classappend="${currentPage == totalPages - 1 ? 'disabled' : ''}">></a>
+    <div class="prof_container">
+        <div class="pagination-profile">
+            <div class="pagination">
+                <a th:href="@{/home(page=${currentPage - 1})}" th:classappend="${currentPage == 0 ? 'disabled' : ''}"><</a>
+                <span><span th:text="${currentPage + 1}"></span> of <span th:text="${totalPages}"></span></span>
+                <a th:href="@{/home(page=${currentPage + 1})}" th:classappend="${currentPage == totalPages - 1 ? 'disabled' : ''}">></a>
+            </div>
+            <h3><a href="/profile" class="profile-button">My Profile</a></h3>
         </div>
+    </div>
+
     <footer>
         <p>&copy; 2024 By Arafat. Built with ❤️</p>
     </footer>

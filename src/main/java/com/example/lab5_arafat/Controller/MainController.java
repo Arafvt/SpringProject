@@ -3,8 +3,6 @@ package com.example.lab5_arafat.Controller;
 import com.example.lab5_arafat.Entity.Category;
 import com.example.lab5_arafat.Entity.Task;
 import com.example.lab5_arafat.Entity.User;
-import com.example.lab5_arafat.Repository.TaskRepo;
-import com.example.lab5_arafat.Repository.UserRepo;
 import com.example.lab5_arafat.Service.Implementation.CategoryServiceImpl;
 import com.example.lab5_arafat.Service.Implementation.TaskServiceImpl;
 import com.example.lab5_arafat.Service.Implementation.UserServiceImpl;
@@ -12,75 +10,73 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.Optional;
 
 @Controller
 public class MainController {
-    private final UserRepo userRepo;
-    private final TaskRepo taskRepo;
+
     private final UserServiceImpl userService;
     private final TaskServiceImpl taskService;
     private final CategoryServiceImpl categoryService;
+
     @Autowired
-    public MainController(TaskRepo taskRepo, UserRepo userRepo, UserServiceImpl userService,
-                          TaskServiceImpl taskService, CategoryServiceImpl categoryService) {
-        this.userRepo = userRepo;
-        this.taskRepo = taskRepo;
+    public MainController(UserServiceImpl userService, TaskServiceImpl taskService, CategoryServiceImpl categoryService) {
         this.userService = userService;
         this.taskService = taskService;
         this.categoryService = categoryService;
     }
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
     @GetMapping("/home")
     public String home(@AuthenticationPrincipal UserDetails currentUser,
-                       @RequestParam(defaultValue = "0") int page, Model model) {
+                       @RequestParam(defaultValue = "0") int page,
+                       Model model) {
+        return loadTasks(currentUser, page, null, model);
+    }
+
+    @GetMapping("/search")
+    public String searchTasks(@AuthenticationPrincipal UserDetails currentUser,
+                              @RequestParam("query") String query,
+                              @RequestParam(defaultValue = "0") int page,
+                              Model model) {
+        return loadTasks(currentUser, page, query, model);
+    }
+
+    private String loadTasks(UserDetails currentUser, int page, String query, Model model) {
         if (currentUser == null) {
             return "redirect:/login";
         }
-
-        String username = currentUser.getUsername();
-        User user = userService.findByUsername(username);
-
+        User user = userService.findByUsername(currentUser.getUsername());
         if (user == null) {
             return "redirect:/login";
         }
-
-        model.addAttribute("currentUser", user);
-        try {
-            List<Task> tasks = taskService.findTasksByUser(user.getId());
-            model.addAttribute("tasks", tasks);
-        } catch (Exception e) {
-            System.err.println("Error reading tasks: " + e.getMessage());
-            model.addAttribute("errorMessage",
-                    "Failed to load tasks. Please contact your administrator.");
-            return "error-page";
+        Pageable pageable = PageRequest.of(page, 3);
+        Page<Task> taskPage;
+        if (query == null || query.trim().isEmpty()) {
+            taskPage = taskService.findTasksByUser(user.getId(), pageable);
+        } else {
+            taskPage = taskService.searchTasksByTitleAndUser(query.trim(), user.getId(), pageable);
         }
 
-        Pageable pageable = PageRequest.of(page, 3);
-        Page<Task> taskPage = taskService.findTasksByUser(user.getId(), pageable);
-
+        model.addAttribute("currentUser", user);
         model.addAttribute("tasks", taskPage.getContent());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", taskPage.getTotalPages());
+        model.addAttribute("query", query != null ? query : "");
+
         return "homePage";
     }
 
+
     @GetMapping("/profile")
-    public String viewProfile(Authentication authentication, Model model) {
-        String username = authentication.getName();
-        User user = userRepo.findByUsername(username);
+    public String viewProfile(@AuthenticationPrincipal UserDetails currentUser, Model model) {
+        User user = userService.findByUsername(currentUser.getUsername());
         if (user == null) {
             throw new RuntimeException("User not found");
         }
@@ -88,51 +84,17 @@ public class MainController {
         return "profile";
     }
 
-    @GetMapping("/search")
-    public String searchTasks(@RequestParam("query") String query, Model model) {
-        if (query == null || query.trim().isEmpty()) {
-            model.addAttribute("tasks", taskRepo.findAll());
-        } else {
-            model.addAttribute("tasks", taskRepo.findByTitleContainingIgnoreCase(query.trim()));
-        }
-        return "homePage";
-    }
-
     @GetMapping("/task/new")
     public String newTask(Model model) {
-        model.addAttribute("task", new Task());
-        model.addAttribute("categories", categoryService.getAllCategories());
-        model.addAttribute("statuses", Task.Status.values());
-        model.addAttribute("priorities", Task.Priority.values());
+        populateTaskFormAttributes(new Task(), model);
         return "newTask";
     }
 
     @PostMapping("/task")
-    public String addTask(
-            @RequestParam("title") String title,
-            @RequestParam("description") String description,
-            @RequestParam("dueDate") String dueDate,
-            @RequestParam(value = "status", required = false, defaultValue = "PENDING") String status,
-            @RequestParam("priority") String priority,
-            @RequestParam("categoryId") Long categoryId,
-            @AuthenticationPrincipal UserDetails currentUser
-    ) {
-        User user = userService.findByUsername(currentUser.getUsername());
-        Category category = categoryService.getCategoryById(categoryId);
-
-        if (user != null && category != null) {
-            Task task = new Task();
-            task.setTitle(title);
-            task.setDescription(description);
-            task.setDueDate(dueDate.isEmpty() ? null : LocalDate.parse(dueDate));
-            task.setStatus(Task.Status.valueOf(status.toUpperCase()));
-            task.setPriority(Task.Priority.valueOf(priority.toUpperCase()));
-            task.setCategory(category);
-            task.setUser(user);
-
-            taskService.addTask(task);
-        }
-
+    public String addTask(Task task,
+                          @RequestParam("categoryId") Long categoryId,
+                          @AuthenticationPrincipal UserDetails currentUser) {
+        populateAndSaveTask(task, categoryId, currentUser);
         return "redirect:/home";
     }
 
@@ -146,45 +108,56 @@ public class MainController {
         return "aboutTask";
     }
 
-    @GetMapping("/task/delete/{id}")
-    public String deleteTask(@PathVariable Long id) {
-        taskService.deleteTaskById(id);
-        return "redirect:/home";
-    }
-
     @GetMapping("/task/edit/{id}")
     public String editTask(@PathVariable Long id, Model model) {
         Task task = taskService.getTaskById(id);
         if (task == null) {
             return "redirect:/home";
         }
-        model.addAttribute("task", task);
-        model.addAttribute("categories", categoryService.getAllCategories());
-        model.addAttribute("statuses", Task.Status.values());
-        model.addAttribute("priorities", Task.Priority.values());
+        populateTaskFormAttributes(task, model);
         return "editTask";
     }
 
     @PostMapping("/task/update/{id}")
     public String updateTask(@PathVariable Long id,
-                             @RequestParam("title") String title,
-                             @RequestParam("description") String description,
-                             @RequestParam("dueDate") String dueDate,
-                             @RequestParam("status") String status,
-                             @RequestParam("priority") String priority,
+                             Task task,
                              @RequestParam("categoryId") Long categoryId) {
-        Task task = taskService.getTaskById(id);
-        if (task != null) {
-            task.setTitle(title);
-            task.setDescription(description);
-            task.setDueDate(dueDate.isEmpty() ? null : LocalDate.parse(dueDate));
-            task.setStatus(Task.Status.valueOf(status.toUpperCase()));
-            task.setPriority(Task.Priority.valueOf(priority.toUpperCase()));
-            task.setCategory(categoryService.getCategoryById(categoryId));
-
-            taskService.updateTask(task);
+        Task existTask = taskService.getTaskById(id);
+        if (existTask != null) {
+            task.setId(id);
+            populateAndSaveTask(task, categoryId, null);
         }
         return "redirect:/home";
     }
 
+    @GetMapping("/task/delete/{id}")
+    public String deleteTask(@PathVariable Long id) {
+        taskService.deleteTaskById(id);
+        return "redirect:/home";
+    }
+
+    private void populateTaskFormAttributes(Task task, Model model) {
+        model.addAttribute("task", task);
+        model.addAttribute("categories", categoryService.getAllCategories());
+        model.addAttribute("statuses", Task.Status.values());
+        model.addAttribute("priorities", Task.Priority.values());
+    }
+
+    private void populateAndSaveTask(Task task, Long categoryId, UserDetails currentUser) {
+        Category category = categoryService.getCategoryById(categoryId);
+        if (category == null) {
+            throw new RuntimeException("Category not found");
+        }
+
+        if (currentUser != null) {
+            User user = userService.findByUsername(currentUser.getUsername());
+            if (user == null) {
+                throw new RuntimeException("User not found");
+            }
+            task.setUser(user);
+        }
+
+        task.setCategory(category);
+        taskService.addTask(task);
+    }
 }

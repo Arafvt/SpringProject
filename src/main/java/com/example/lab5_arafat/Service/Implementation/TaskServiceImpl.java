@@ -61,5 +61,10 @@ public class TaskServiceImpl implements TaskService {
     public Page<Task> findTasksByUser(Long userId, Pageable pageable) {
         return taskRepo.findByUserId(userId, pageable);
     }
+
+    public Page<Task> searchTasksByTitleAndUser(String title, Long userId, Pageable pageable) {
+        return taskRepo.findByTitleContainingIgnoreCaseAndUserId(title, userId, pageable);
+    }
+
 }
 
