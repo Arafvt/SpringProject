@@ -44,7 +44,8 @@ public class MainController {
     private PasswordEncoder passwordEncoder;
 
     @GetMapping("/home")
-    public String home(@AuthenticationPrincipal UserDetails currentUser, Model model) {
+    public String home(@AuthenticationPrincipal UserDetails currentUser,
+                       @RequestParam(defaultValue = "0") int page, Model model) {
         if (currentUser == null) {
             return "redirect:/login";
         }
@@ -61,17 +62,23 @@ public class MainController {
             List<Task> tasks = taskService.findTasksByUser(user.getId());
             model.addAttribute("tasks", tasks);
         } catch (Exception e) {
-            System.err.println("Ошибка при чтении задач: " + e.getMessage());
+            System.err.println("Error reading tasks: " + e.getMessage());
             model.addAttribute("errorMessage",
-                    "Не удалось загрузить задачи. Обратитесь к администратору.");
+                    "Failed to load tasks. Please contact your administrator.");
             return "error-page";
         }
+
+        Pageable pageable = PageRequest.of(page, 3);
+        Page<Task> taskPage = taskService.findTasksByUser(user.getId(), pageable);
+
+        model.addAttribute("tasks", taskPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", taskPage.getTotalPages());
         return "homePage";
     }
 
     @GetMapping("/profile")
     public String viewProfile(Authentication authentication, Model model) {
-
         String username = authentication.getName();
         User user = userRepo.findByUsername(username);
         if (user == null) {
@@ -89,20 +96,6 @@ public class MainController {
             model.addAttribute("tasks", taskRepo.findByTitleContainingIgnoreCase(query.trim()));
         }
         return "homePage";
-    }
-
-    @GetMapping("/categories")
-    public String categories(Model model) {
-        List<Category> categories = categoryService.getAllCategories();
-        model.addAttribute("categories", categories);
-        return "category";
-    }
-
-    @GetMapping("/tasks/{categoryId}")
-    public String tasks(@PathVariable Long categoryId, Model model) {
-        List<Task> tasks = taskService.findTasksByCategory(categoryId);
-        model.addAttribute("tasks", tasks);
-        return "tasks";
     }
 
     @GetMapping("/task/new")
@@ -194,30 +187,4 @@ public class MainController {
         return "redirect:/home";
     }
 
-//    @GetMapping("/home")
-//    public String home(@AuthenticationPrincipal UserDetails currentUser,
-//                       @RequestParam(defaultValue = "0") int page, // Параметр для страницы
-//                       Model model) {
-//        if (currentUser == null) {
-//            return "redirect:/login";
-//        }
-//
-//        String username = currentUser.getUsername();
-//        User user = userService.findByUsername(username);
-//
-//        if (user == null) {
-//            return "redirect:/login";
-//        }
-//
-//        model.addAttribute("currentUser", user);
-//
-//        Pageable pageable = PageRequest.of(page, 5);
-//
-//        Page<Task> taskPage = taskService.findTasksByUser(user.getId(), pageable);
-//        model.addAttribute("tasks", taskPage.getContent());
-//        model.addAttribute("currentPage", page);
-//        model.addAttribute("totalPages", taskPage.getTotalPages());
-//
-//        return "homePage";
-//    }
 }

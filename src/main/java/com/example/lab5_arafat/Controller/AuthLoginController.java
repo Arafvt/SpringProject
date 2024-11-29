@@ -16,11 +16,11 @@ public class AuthLoginController {
     private UserServiceImpl userService;
 
     @GetMapping("/register")
-    public String showRegisterForm(Model model, @RequestParam(value = "error", required = false) String error) {
+    public String registerForm(Model model, @RequestParam(value = "error", required = false) String error) {
         model.addAttribute("user", new User());
         if (error != null) {
             model.addAttribute("errorMessage",
-                    "Email уже используется. Попробуйте другой.");
+                    "Email is already in use. Try another one.");
         }
         return "register";
     }
@@ -34,10 +34,8 @@ public class AuthLoginController {
         return "redirect:/login";
     }
 
-
-
     @GetMapping("/login")
-    public String showLoginForm() {
+    public String loginForm() {
         return "login";
     }
 }
