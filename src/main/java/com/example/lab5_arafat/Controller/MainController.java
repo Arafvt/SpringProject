@@ -16,9 +16,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.util.Optional;
-
 @Controller
 public class MainController {
 
@@ -36,19 +33,21 @@ public class MainController {
     @GetMapping("/home")
     public String home(@AuthenticationPrincipal UserDetails currentUser,
                        @RequestParam(defaultValue = "0") int page,
+                       @RequestParam(value = "categoryId", required = false) Long categoryId,
                        Model model) {
-        return loadTasks(currentUser, page, null, model);
+        return loadTasks(currentUser, page, null, categoryId, model);
     }
 
     @GetMapping("/search")
     public String searchTasks(@AuthenticationPrincipal UserDetails currentUser,
                               @RequestParam("query") String query,
+                              @RequestParam(value = "categoryId", required = false) Long categoryId,
                               @RequestParam(defaultValue = "0") int page,
                               Model model) {
-        return loadTasks(currentUser, page, query, model);
+        return loadTasks(currentUser, page, query, categoryId, model);
     }
 
-    private String loadTasks(UserDetails currentUser, int page, String query, Model model) {
+    private String loadTasks(UserDetails currentUser, int page, String query, Long categoryId, Model model) {
         if (currentUser == null) {
             return "redirect:/login";
         }
@@ -59,9 +58,17 @@ public class MainController {
         Pageable pageable = PageRequest.of(page, 3);
         Page<Task> taskPage;
         if (query == null || query.trim().isEmpty()) {
-            taskPage = taskService.findTasksByUser(user.getId(), pageable);
+            if (categoryId != null && categoryId != 0) {
+                taskPage = taskService.findTasksByCategoryAndUser(categoryId, user.getId(), pageable);
+            } else {
+                taskPage = taskService.findTasksByUser(user.getId(), pageable);
+            }
         } else {
-            taskPage = taskService.searchTasksByTitleAndUser(query.trim(), user.getId(), pageable);
+            if (categoryId != null && categoryId != 0) {
+                taskPage = taskService.searchTasksByTitleAndCategoryAndUser(query.trim(), categoryId, user.getId(), pageable);
+            } else {
+                taskPage = taskService.searchTasksByTitleAndUser(query.trim(), user.getId(), pageable);
+            }
         }
 
         model.addAttribute("currentUser", user);
@@ -69,19 +76,9 @@ public class MainController {
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", taskPage.getTotalPages());
         model.addAttribute("query", query != null ? query : "");
+        model.addAttribute("categories", categoryService.getAllCategories());
 
         return "homePage";
-    }
-
-
-    @GetMapping("/profile")
-    public String viewProfile(@AuthenticationPrincipal UserDetails currentUser, Model model) {
-        User user = userService.findByUsername(currentUser.getUsername());
-        if (user == null) {
-            throw new RuntimeException("User not found");
-        }
-        model.addAttribute("user", user);
-        return "profile";
     }
 
     @GetMapping("/task/new")
@@ -121,10 +118,18 @@ public class MainController {
     @PostMapping("/task/update/{id}")
     public String updateTask(@PathVariable Long id,
                              Task task,
-                             @RequestParam("categoryId") Long categoryId) {
+                             @RequestParam("categoryId") Long categoryId,
+                             @AuthenticationPrincipal UserDetails currentUser) {
         Task existTask = taskService.getTaskById(id);
         if (existTask != null) {
             task.setId(id);
+            if (currentUser != null) {
+                User user = userService.findByUsername(currentUser.getUsername());
+                if (user == null) {
+                    throw new RuntimeException("User not found");
+                }
+                task.setUser(user);
+            }
             populateAndSaveTask(task, categoryId, null);
         }
         return "redirect:/home";

@@ -13,6 +13,8 @@ public interface TaskRepo extends JpaRepository<Task, Long> {
     List<Task> findByCategoryId(Long categoryId);
     Page<Task> findByUserId(Long userId, Pageable pageable);
     Page<Task> findByTitleContainingIgnoreCaseAndUserId(String title, Long userId, Pageable pageable);
+    Page<Task> findByCategoryIdAndUserId(Long categoryId, Long userId, Pageable pageable);
+    Page<Task> findByTitleContainingAndCategoryIdAndUserId(String title, Long categoryId, Long userId, Pageable pageable);
 }
 
 
