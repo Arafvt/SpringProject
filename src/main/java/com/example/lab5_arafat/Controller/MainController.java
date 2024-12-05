@@ -6,6 +6,7 @@ import com.example.lab5_arafat.Entity.User;
 import com.example.lab5_arafat.Service.Implementation.CategoryServiceImpl;
 import com.example.lab5_arafat.Service.Implementation.TaskServiceImpl;
 import com.example.lab5_arafat.Service.Implementation.UserServiceImpl;
+import com.example.lab5_arafat.Service.PhotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +16,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @Controller
 public class MainController {
@@ -22,12 +26,15 @@ public class MainController {
     private final UserServiceImpl userService;
     private final TaskServiceImpl taskService;
     private final CategoryServiceImpl categoryService;
+    private final PhotoService photoService;
 
     @Autowired
-    public MainController(UserServiceImpl userService, TaskServiceImpl taskService, CategoryServiceImpl categoryService) {
+    public MainController(UserServiceImpl userService, TaskServiceImpl taskService,
+                          CategoryServiceImpl categoryService, PhotoService photoService) {
         this.userService = userService;
         this.taskService = taskService;
         this.categoryService = categoryService;
+        this.photoService = photoService;
     }
 
     @GetMapping("/home")
@@ -164,5 +171,22 @@ public class MainController {
 
         task.setCategory(category);
         taskService.addTask(task);
+    }
+
+    @PostMapping("/user/photoUpload")
+    public String uploadUserPhoto(@AuthenticationPrincipal UserDetails currentUser,
+                                  @RequestParam("file") MultipartFile file,
+                                  Model model) {
+        try {
+            User user = userService.findByUsername(currentUser.getUsername());
+            if (user == null) {
+                return "redirect:/login";
+            }
+            photoService.uploadUserPhoto(file, user);
+            return "redirect:/home";
+        } catch (IOException e) {
+            model.addAttribute("error", "Failed to upload photo");
+            return "errorPage";
+        }
     }
 }

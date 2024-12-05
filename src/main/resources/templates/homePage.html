@@ -3,13 +3,23 @@
 <head>
     <title>Home Page</title>
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #8e44ad, #3498db);
-            margin: 0;
-            padding: 0;
-            position: relative;
+            background: linear-gradient(180deg, #8e44ad, #3498db);
             overflow-x: hidden;
+        }
+
+        .wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         h2 {
@@ -28,15 +38,16 @@
             display: flex;
             align-items: center;
             justify-content: left;
-            width: 100%;
-            padding: 30px;
+            width: 40%;
+            padding: 15px;
             border-radius: 15px;
-            margin-left: 200px;
+            margin-left: 150px;
+            margin-bottom: -10px;
         }
 
         .profile-picture {
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             background: url('https://via.placeholder.com/100') no-repeat center center;
             background-size: cover;
@@ -261,81 +272,85 @@
 
         footer {
             text-align: center;
-            margin-top: 50px;
             font-size: 14px;
             color: #fff;
-            position: relative;
-            z-index: 1;
-        }
-
-        footer a {
-            color: #1a73e8;
-            text-decoration: none;
-        }
-
-        footer a:hover {
-            text-decoration: underline;
+            padding: 10px 0;
+            margin-top: auto;
         }
     </style>
 </head>
 <body>
-    <div class="profile-container">
-        <div class="profile-picture"></div>
-        <div class="profile-info">
-            <p><strong>Username:</strong> <span th:text="${currentUser.username}"></span></p>
-            <p><strong>Email:</strong> <span th:text="${currentUser.email}"></span></p>
-        </div>
-    </div>
-    <div class="header-container">
-        <h2>My Tasks</h2>
-        <form th:action="@{/search}" method="get">
-            <input type="text" name="query" placeholder="Enter the name of task">
-            <button type="submit">Find</button>
-
-            <select name="categoryId">
-                <option value="">All Categories</option>
-                <option th:each="category : ${categories}"
-                        th:value="${category.id}"
-                        th:text="${category.name}"></option>
-            </select>
-            <button type="submit">Filter</button>
-        </form>
-        <a href="/task/new" class="add-task-btn">New Task</a>
-    </div>
-    <table>
-        <thead>
-        <tr>
-            <th>Title</th>
-            <th>Category</th>
-            <th>Action</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="task : ${tasks}">
-            <td>
-                <a th:href="@{/task/{id}(id=${task.id})}" class="task-title" th:text="${task.title}"></a>
-            </td>
-            <td th:text="${task.category.name}"></td>
-            <td>
-                <a th:href="@{/task/edit/{id}(id=${task.id})}" class="edit-button">Edit</a>
-                <a th:href="@{/task/delete/{id}(id=${task.id})}" class="delete-button">Delete</a>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-    <div class="pagination-container">
-        <div class="pagination-block">
-            <div class="pagination">
-                <a th:href="@{/home(page=${currentPage - 1})}" th:classappend="${currentPage == 0 ? 'disabled' : ''}"><</a>
-                <span><span th:text="${currentPage + 1}"></span> of <span th:text="${totalPages}"></span></span>
-                <a th:href="@{/home(page=${currentPage + 1})}" th:classappend="${currentPage == totalPages - 1 ? 'disabled' : ''}">></a>
+    <div class="wrapper">
+        <div class="profile-container">
+            <form action="/user/photoUpload" method="post" enctype="multipart/form-data">
+                <div class="profile-picture" style="cursor: pointer;">
+                    <img th:src="@{'/images/' + ${currentUser.photo}}"
+                         alt="Profile Picture"
+                         style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover;"
+                         onerror="this.src='/images/default.png'">
+                    <input type="file" name="file" id="file" style="display: none;" onchange="this.form.submit()">
+                </div>
+            </form>
+            <div class="profile-info">
+                <p><strong>Username:</strong> <span th:text="${currentUser.username}"></span></p>
+                <p><strong>Email:</strong> <span th:text="${currentUser.email}"></span></p>
             </div>
-            <h3><a href="/login" class="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</a></h3>
+        </div>
+        <div class="header-container">
+            <h2>My Tasks</h2>
+            <form th:action="@{/search}" method="get">
+                <input type="text" name="query" placeholder="Enter the name of task">
+                <button type="submit">Find</button>
+
+                <select name="categoryId">
+                    <option value="">All Categories</option>
+                    <option th:each="category : ${categories}"
+                            th:value="${category.id}"
+                            th:text="${category.name}"></option>
+                </select>
+                <button type="submit">Filter</button>
+            </form>
+            <a href="/task/new" class="add-task-btn">New Task</a>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="task : ${tasks}">
+                <td>
+                    <a th:href="@{/task/{id}(id=${task.id})}" class="task-title" th:text="${task.title}"></a>
+                </td>
+                <td th:text="${task.category.name}"></td>
+                <td>
+                    <a th:href="@{/task/edit/{id}(id=${task.id})}" class="edit-button">Edit</a>
+                    <a th:href="@{/task/delete/{id}(id=${task.id})}" class="delete-button">Delete</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="pagination-container">
+            <div class="pagination-block">
+                <div class="pagination">
+                    <a th:href="@{/home(page=${currentPage - 1})}" th:classappend="${currentPage == 0 ? 'disabled' : ''}"><</a>
+                    <span><span th:text="${currentPage + 1}"></span> of <span th:text="${totalPages}"></span></span>
+                    <a th:href="@{/home(page=${currentPage + 1})}" th:classappend="${currentPage == totalPages - 1 ? 'disabled' : ''}">></a>
+                </div>
+                <h3><a href="/login" class="logout-button"><i class="fas fa-sign-out-alt"></i> Logout</a></h3>
+            </div>
         </div>
     </div>
-
     <footer>
         <p>&copy; 2024 By Arafat. Built with ❤️</p>
     </footer>
+    <script>
+        document.querySelector('.profile-picture').addEventListener('click', function () {
+            document.querySelector('#file').click();
+        });
+    </script>
 </body>
 </html>
