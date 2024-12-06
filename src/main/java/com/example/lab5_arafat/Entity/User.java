@@ -21,6 +21,8 @@ public class User {
 
     private String photo;
 
+    private String resetCode;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -81,6 +83,14 @@ public class User {
 
     public void setPhoto(String photo) {
         this.photo = photo;
+    }
+
+    public String getResetCode() {
+        return resetCode;
+    }
+
+    public void setResetCode(String resetCode) {
+        this.resetCode = resetCode;
     }
 }
 

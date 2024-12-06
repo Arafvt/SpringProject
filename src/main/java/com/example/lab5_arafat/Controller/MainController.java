@@ -3,6 +3,7 @@ package com.example.lab5_arafat.Controller;
 import com.example.lab5_arafat.Entity.Category;
 import com.example.lab5_arafat.Entity.Task;
 import com.example.lab5_arafat.Entity.User;
+import com.example.lab5_arafat.Service.EmailService;
 import com.example.lab5_arafat.Service.Implementation.CategoryServiceImpl;
 import com.example.lab5_arafat.Service.Implementation.TaskServiceImpl;
 import com.example.lab5_arafat.Service.Implementation.UserServiceImpl;
@@ -27,14 +28,17 @@ public class MainController {
     private final TaskServiceImpl taskService;
     private final CategoryServiceImpl categoryService;
     private final PhotoService photoService;
+    private final EmailService emailService;
 
     @Autowired
     public MainController(UserServiceImpl userService, TaskServiceImpl taskService,
-                          CategoryServiceImpl categoryService, PhotoService photoService) {
+                          CategoryServiceImpl categoryService, PhotoService photoService,
+                          EmailService emailService) {
         this.userService = userService;
         this.taskService = taskService;
         this.categoryService = categoryService;
         this.photoService = photoService;
+        this.emailService = emailService;
     }
 
     @GetMapping("/home")
@@ -47,14 +51,15 @@ public class MainController {
 
     @GetMapping("/search")
     public String searchTasks(@AuthenticationPrincipal UserDetails currentUser,
+                              @RequestParam(defaultValue = "0") int page,
                               @RequestParam("query") String query,
                               @RequestParam(value = "categoryId", required = false) Long categoryId,
-                              @RequestParam(defaultValue = "0") int page,
                               Model model) {
         return loadTasks(currentUser, page, query, categoryId, model);
     }
 
-    private String loadTasks(UserDetails currentUser, int page, String query, Long categoryId, Model model) {
+    private String loadTasks(UserDetails currentUser, int page, String query,
+                             Long categoryId, Model model) {
         if (currentUser == null) {
             return "redirect:/login";
         }
@@ -72,9 +77,9 @@ public class MainController {
             }
         } else {
             if (categoryId != null && categoryId != 0) {
-                taskPage = taskService.searchTasksByTitleAndCategoryAndUser(query.trim(), categoryId, user.getId(), pageable);
+                taskPage = taskService.findTasksByTitleAndCategoryAndUser(query.trim(), categoryId, user.getId(), pageable);
             } else {
-                taskPage = taskService.searchTasksByTitleAndUser(query.trim(), user.getId(), pageable);
+                taskPage = taskService.findTasksByTitleAndUser(query.trim(), user.getId(), pageable);
             }
         }
 
@@ -122,7 +127,7 @@ public class MainController {
         return "editTask";
     }
 
-    @PostMapping("/task/update/{id}")
+    @PostMapping("/task/edit/{id}")
     public String updateTask(@PathVariable Long id,
                              Task task,
                              @RequestParam("categoryId") Long categoryId,
@@ -189,4 +194,49 @@ public class MainController {
             return "errorPage";
         }
     }
+
+    @GetMapping("/user/changePassword")
+    public String changePasswordPage(@AuthenticationPrincipal UserDetails currentUser, Model model) {
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+        User user = userService.findByUsername(currentUser.getUsername());
+        if (user == null) {
+            return "redirect:/login";
+        }
+        model.addAttribute("email", user.getEmail());
+        return "changePasswordPage";
+    }
+
+    @PostMapping("/user/sendCode")
+    public String sendPasswordResetCode(@AuthenticationPrincipal UserDetails currentUser, Model model) {
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+        User user = userService.findByUsername(currentUser.getUsername());
+        if (user == null) {
+            return "redirect:/login";
+        }
+        String code = String.valueOf((int) (Math.random() * 1000000));
+        emailService.sendEmail(user.getEmail(), "Password Reset Code", "Your password reset code is: " + code);
+        userService.savePasswordResetCode(user, code);
+        model.addAttribute("email", user.getEmail());
+        model.addAttribute("message", "Verification code sent to your email.");
+        return "changePasswordPage";
+    }
+
+    @PostMapping("/user/changePassword")
+    public String changePassword(@RequestParam("email") String email,
+                                 @RequestParam("code") String code,
+                                 @RequestParam("newPassword") String newPassword,
+                                 Model model) {
+        User user = userService.findByEmail(email);
+        if (user == null || !userService.isResetCodeValid(user, code)) {
+            model.addAttribute("error", "Invalid code or email.");
+            return "changePasswordPage";
+        }
+        userService.updatePassword(user, newPassword);
+        return "redirect:/login";
+    }
+
 }

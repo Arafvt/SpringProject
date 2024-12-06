@@ -51,6 +51,21 @@ public class UserServiceImpl implements UserService {
     public void deleteUserById(Long userId) {
         userRepo.deleteById(userId);
     }
+
+    public void savePasswordResetCode(User user, String code) {
+        user.setResetCode(code);
+        userRepo.save(user);
+    }
+
+    public boolean isResetCodeValid(User user, String code) {
+        return user.getResetCode() != null && user.getResetCode().equals(code);
+    }
+
+    public void updatePassword(User user, String newPassword) {
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetCode(null);
+        userRepo.save(user);
+    }
 }
 
 

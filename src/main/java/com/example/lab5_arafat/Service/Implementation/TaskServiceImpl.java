@@ -62,7 +62,7 @@ public class TaskServiceImpl implements TaskService {
         return taskRepo.findByUserId(userId, pageable);
     }
 
-    public Page<Task> searchTasksByTitleAndUser(String title, Long userId, Pageable pageable) {
+    public Page<Task> findTasksByTitleAndUser(String title, Long userId, Pageable pageable) {
         return taskRepo.findByTitleContainingIgnoreCaseAndUserId(title, userId, pageable);
     }
 
@@ -70,7 +70,7 @@ public class TaskServiceImpl implements TaskService {
         return taskRepo.findByCategoryIdAndUserId(categoryId, userId, pageable);
     }
 
-    public Page<Task> searchTasksByTitleAndCategoryAndUser(String query, Long categoryId, Long userId, Pageable pageable) {
+    public Page<Task> findTasksByTitleAndCategoryAndUser(String query, Long categoryId, Long userId, Pageable pageable) {
         return taskRepo.findByTitleContainingAndCategoryIdAndUserId(query, categoryId, userId, pageable);
     }
 
